@@ -8,6 +8,7 @@
   "unpkg": "dist/plugin.js",
   "files": [
     "dist/",
+    "src/",
     "android/src/main/",
     "android/build.gradle",
     "ios/Plugin/",

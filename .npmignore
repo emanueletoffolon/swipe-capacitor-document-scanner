@@ -1,5 +1,4 @@
 # Development files
-src/
 .github/
 .git/
 .gitignore
@@ -41,5 +40,5 @@ android/build/
 android/.gradle/
 android/local.properties
 
-# Compiled output (keep only dist)
-dist/
+# Keep dist and src for Angular module imports
+
