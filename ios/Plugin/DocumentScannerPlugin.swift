@@ -1,5 +1,7 @@
 import Foundation
 import Capacitor
+import UIKit
+import VisionKit
 
 /**
  * This class contains functions that get called when
