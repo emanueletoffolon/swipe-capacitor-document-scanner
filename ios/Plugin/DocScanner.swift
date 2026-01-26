@@ -25,7 +25,10 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
 
     /** @property  croppedImageQuality the 0 - 100 quality of the cropped image */
     private var croppedImageQuality: Int
-    
+
+    /** @property  maxNumDocuments the maximum number of documents to scan */
+    private var maxNumDocuments: Int
+
     /**
      constructor for DocScanner
 
@@ -35,7 +38,8 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
      @param     cancelHandler       a callback triggered when the user cancels the document scan
      @param     responseType        determines the format response (base64 or file paths)
      @param     croppedImageQuality the 0 - 100 quality of the cropped image
-     
+     @param     maxNumDocuments     the maximum number of documents to scan
+
      @return    Returns a DocScanner
      */
     public init(
@@ -44,7 +48,8 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
         errorHandler: @escaping (String) -> Void = {_ in },
         cancelHandler: @escaping () -> Void = {},
         responseType: String = ResponseType.imageFilePath,
-        croppedImageQuality: Int = 100
+        croppedImageQuality: Int = 100,
+        maxNumDocuments: Int = Int.max
     ) {
         self.viewController = viewController
         self.successHandler = successHandler
@@ -52,6 +57,7 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
         self.cancelHandler = cancelHandler
         self.responseType = responseType
         self.croppedImageQuality = croppedImageQuality
+        self.maxNumDocuments = maxNumDocuments
     }
     
     /**
@@ -90,6 +96,7 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
      @param     cancelHandler       a callback triggered when the user cancels the document scan
      @param     responseType        determines the format response (base64 or file paths)
      @param     croppedImageQuality the 0 - 100 quality of the cropped image
+     @param     maxNumDocuments     the maximum number of documents to scan
      */
     public func startScan(
         _ viewController: UIViewController? = nil,
@@ -97,7 +104,8 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
         errorHandler: @escaping (String) -> Void = {_ in },
         cancelHandler: @escaping () -> Void = {},
         responseType: String? = ResponseType.imageFilePath,
-        croppedImageQuality: Int? = 100
+        croppedImageQuality: Int? = 100,
+        maxNumDocuments: Int? = Int.max
     ) {
         self.viewController = viewController
         self.successHandler = successHandler
@@ -105,7 +113,8 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
         self.cancelHandler = cancelHandler
         self.responseType = responseType ?? ResponseType.imageFilePath
         self.croppedImageQuality = croppedImageQuality ?? 100
-        
+        self.maxNumDocuments = maxNumDocuments ?? Int.max
+
         self.startScan()
     }
     
@@ -122,9 +131,12 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
     ) {
         var results: [String] = []
         
-        // loop through all scanned pages
-        for pageNumber in 0...scan.pageCount - 1 {
-            
+        // calculate the number of pages to process (limited by maxNumDocuments)
+        let numPagesToProcess = min(scan.pageCount, self.maxNumDocuments)
+
+        // loop through all scanned pages (limited by maxNumDocuments)
+        for pageNumber in 0..<numPagesToProcess {
+
             // convert scan UIImage to jpeg data
             guard let scannedDocumentImage: Data = scan
                 .imageOfPage(at: pageNumber)

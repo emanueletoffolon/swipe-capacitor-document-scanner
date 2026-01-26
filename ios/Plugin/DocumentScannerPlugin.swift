@@ -40,7 +40,9 @@ public class DocumentScannerPlugin: CAPPlugin {
                     "status": "cancel"
                 ])
             },
-            responseType: call.getString("responseType")
+            responseType: call.getString("responseType"),
+            croppedImageQuality: call.getInt("croppedImageQuality"),
+            maxNumDocuments: call.getInt("maxNumDocuments") ?? Int.max
         )
     }
 }
