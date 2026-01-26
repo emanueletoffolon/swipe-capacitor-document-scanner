@@ -18,10 +18,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/swipegmbh/capacitor-document-scanner.git"
+    "url": "git+https://github.com/emanueletoffolon/swipe-capacitor-document-scanner.git"
   },
   "bugs": {
-    "url": "https://github.com/swipegmbh/capacitor-document-scanner/issues"
+    "url": "https://github.com/emanueletoffolon/swipe-capacitor-document-scanner/issues"
   },
   "keywords": [
     "capacitor",
