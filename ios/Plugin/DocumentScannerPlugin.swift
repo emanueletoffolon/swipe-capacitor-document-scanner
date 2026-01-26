@@ -21,6 +21,9 @@ public class DocumentScannerPlugin: CAPPlugin {
      */
     @objc func scanDocument(_ call: CAPPluginCall) {
         // launch the document scanner
+        let croppedImageQuality = call.getInt("croppedImageQuality") ?? 100
+        let maxNumDocuments = call.getInt("maxNumDocuments") ?? Int.max
+
         documentScanner.startScan(
             bridge?.viewController,
             successHandler: { (scannedDocumentImages: [String]) in
@@ -41,8 +44,8 @@ public class DocumentScannerPlugin: CAPPlugin {
                 ])
             },
             responseType: call.getString("responseType"),
-            croppedImageQuality: call.getInt("croppedImageQuality"),
-            maxNumDocuments: call.getInt("maxNumDocuments") ?? Int.max
+            croppedImageQuality: croppedImageQuality,
+            maxNumDocuments: maxNumDocuments
         )
     }
 }

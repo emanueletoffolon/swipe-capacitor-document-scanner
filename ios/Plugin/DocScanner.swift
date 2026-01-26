@@ -29,6 +29,18 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
     /** @property  maxNumDocuments the maximum number of documents to scan */
     private var maxNumDocuments: Int
 
+    /** @property  scannedDocumentsCount tracks the number of documents already scanned */
+    private var scannedDocumentsCount: Int = 0
+
+    /** @property  allScannedResults stores all scanned results across multiple scans */
+    private var allScannedResults: [String] = []
+
+    /** @property  documentCameraViewController reference to the document scanner for manual dismissal */
+    private var documentCameraViewController: VNDocumentCameraViewController?
+
+    /** @property  toastLabel reference to the toast message label */
+    private var toastLabel: UILabel?
+
     /**
      constructor for DocScanner
 
@@ -73,6 +85,10 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
      opens the camera, and starts the document scan
      */
     public func startScan() {
+        // Reset counters for new scan session
+        self.scannedDocumentsCount = 0
+        self.allScannedResults = []
+
         // make sure device has the ability to scan documents
         if (!VNDocumentCameraViewController.isSupported) {
             self.errorHandler("Document scanning is not supported on this device")
@@ -83,6 +99,7 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
             // launch the document scanner
             let documentCameraViewController = VNDocumentCameraViewController()
             documentCameraViewController.delegate = self
+            self.documentCameraViewController = documentCameraViewController
             self.viewController?.present(documentCameraViewController, animated: true)
         }
     }
@@ -129,13 +146,21 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
         _ controller: VNDocumentCameraViewController,
         didFinishWith scan: VNDocumentCameraScan
     ) {
+        // Check if we've already reached the maximum number of documents
+        if self.scannedDocumentsCount >= self.maxNumDocuments {
+            // Show toast that limit has been reached
+            self.showToast("Limite raggiunto: hai già scansionato \(self.maxNumDocuments) documento/i")
+            return
+        }
+
         var results: [String] = []
         
-        // calculate the number of pages to process (limited by maxNumDocuments)
-        let numPagesToProcess = min(scan.pageCount, self.maxNumDocuments)
-
-        // loop through all scanned pages (limited by maxNumDocuments)
-        for pageNumber in 0..<numPagesToProcess {
+        // Process only one page per scan session (since we're accumulating across multiple scans)
+        for pageNumber in 0..<scan.pageCount {
+            // If we've already processed enough documents, stop
+            if self.scannedDocumentsCount >= self.maxNumDocuments {
+                break
+            }
 
             // convert scan UIImage to jpeg data
             guard let scannedDocumentImage: Data = scan
@@ -154,7 +179,7 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
                 case ResponseType.imageFilePath:
                     do {
                         // save scan jpeg
-                        let croppedImageFilePath = FileUtil().createImageFile(pageNumber)
+                        let croppedImageFilePath = FileUtil().createImageFile(self.scannedDocumentsCount)
                         try scannedDocumentImage.write(to: croppedImageFilePath)
                         
                         // store image file path
@@ -170,13 +195,18 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
                     )
             }
             
+            // Increment counter after successfully processing a document
+            self.scannedDocumentsCount += 1
         }
         
-        // exit document scanner
-        goBackToPreviousView(controller)
-        
-        // return scanned document results
-        self.successHandler(results)
+        // Add results to accumulated results
+        self.allScannedResults.append(contentsOf: results)
+
+        // Don't close the scanner - let user decide when to close
+        // Show a toast message if limit has been reached
+        if self.scannedDocumentsCount >= self.maxNumDocuments {
+            self.showToast("Limite raggiunto! Hai scansionato \(self.scannedDocumentsCount)/\(self.maxNumDocuments) documenti", duration: 3.0)
+        }
     }
     
     /**
@@ -189,7 +219,13 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
     ) {
         // exit document scanner
         goBackToPreviousView(controller)
-        self.cancelHandler()
+
+        // If user has scanned some documents, return them instead of canceling
+        if self.allScannedResults.count > 0 {
+            self.successHandler(self.allScannedResults)
+        } else {
+            self.cancelHandler()
+        }
     }
 
     /**
@@ -219,4 +255,71 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
             controller.dismiss(animated: true)
         }
     }
+
+    /**
+     Shows a toast message on the screen that disappears automatically
+
+     @param message    the message to display
+     @param duration   the duration in seconds to show the toast (default 2 seconds)
+     */
+    private func showToast(_ message: String, duration: TimeInterval = 2.0) {
+        DispatchQueue.main.async {
+            // Remove existing toast if present
+            self.toastLabel?.removeFromSuperview()
+
+            // Create toast label
+            let toastLabel = UILabel()
+            toastLabel.text = message
+            toastLabel.textColor = .white
+            toastLabel.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+            toastLabel.textAlignment = .center
+            toastLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+            toastLabel.numberOfLines = 0
+            toastLabel.clipsToBounds = true
+            toastLabel.layer.cornerRadius = 8
+
+            // Add padding
+            toastLabel.translatesAutoresizingMaskIntoConstraints = false
+
+            // Get the key window
+            guard let keyWindow = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first?.windows
+                .filter({ $0.isKeyWindow })
+                .first else {
+                return
+            }
+
+            keyWindow.addSubview(toastLabel)
+            self.toastLabel = toastLabel
+
+            // Set constraints
+            NSLayoutConstraint.activate([
+                toastLabel.centerXAnchor.constraint(equalTo: keyWindow.centerXAnchor),
+                toastLabel.bottomAnchor.constraint(equalTo: keyWindow.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+                toastLabel.leadingAnchor.constraint(greaterThanOrEqualTo: keyWindow.leadingAnchor, constant: 20),
+                toastLabel.trailingAnchor.constraint(lessThanOrEqualTo: keyWindow.trailingAnchor, constant: -20)
+            ])
+
+            // Animate in
+            toastLabel.alpha = 0
+            UIView.animate(withDuration: 0.3) {
+                toastLabel.alpha = 1
+            }
+
+            // Remove after duration
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                UIView.animate(
+                    withDuration: 0.3,
+                    animations: {
+                        toastLabel.alpha = 0
+                    },
+                    completion: { _ in
+                        toastLabel.removeFromSuperview()
+                    }
+                )
+            }
+        }
+    }
 }
+
