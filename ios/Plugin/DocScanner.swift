@@ -205,7 +205,10 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
         // Don't close the scanner - let user decide when to close
         // Show a toast message if limit has been reached
         if self.scannedDocumentsCount >= self.maxNumDocuments {
-            self.showToast("Limite raggiunto! Hai scansionato \(self.scannedDocumentsCount)/\(self.maxNumDocuments) documenti", duration: 3.0)
+            // Show on the document scanner controller itself
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.showToastOnController(controller, message: "Limite raggiunto! Hai scansionato \(self.scannedDocumentsCount)/\(self.maxNumDocuments) documenti.", duration: 3.0)
+            }
         }
     }
     
@@ -253,6 +256,65 @@ public class DocScanner: NSObject, VNDocumentCameraViewControllerDelegate {
     private func goBackToPreviousView(_ controller: VNDocumentCameraViewController) {
         DispatchQueue.main.async {
             controller.dismiss(animated: true)
+        }
+    }
+
+    /**
+     Shows a toast message on the document scanner controller
+
+     @param controller  the document scanner controller
+     @param message     the message to display
+     @param duration    the duration in seconds to show the toast
+     */
+    private func showToastOnController(_ controller: VNDocumentCameraViewController, message: String, duration: TimeInterval = 2.0) {
+        DispatchQueue.main.async {
+            // Remove existing toast if present
+            self.toastLabel?.removeFromSuperview()
+
+            // Create toast label
+            let toastLabel = UILabel()
+            toastLabel.text = message
+            toastLabel.textColor = .white
+            toastLabel.backgroundColor = UIColor.black.withAlphaComponent(0.85)
+            toastLabel.textAlignment = .center
+            toastLabel.font = UIFont.systemFont(ofSize: 15, weight: .semibold)
+            toastLabel.numberOfLines = 0
+            toastLabel.clipsToBounds = true
+            toastLabel.layer.cornerRadius = 10
+
+            // Add padding
+            toastLabel.translatesAutoresizingMaskIntoConstraints = false
+
+            // Add to controller's view
+            controller.view.addSubview(toastLabel)
+            self.toastLabel = toastLabel
+
+            // Set constraints - center horizontally, top of view with some padding
+            NSLayoutConstraint.activate([
+                toastLabel.centerXAnchor.constraint(equalTo: controller.view.centerXAnchor),
+                toastLabel.topAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.topAnchor, constant: 20),
+                toastLabel.leadingAnchor.constraint(greaterThanOrEqualTo: controller.view.leadingAnchor, constant: 20),
+                toastLabel.trailingAnchor.constraint(lessThanOrEqualTo: controller.view.trailingAnchor, constant: -20)
+            ])
+
+            // Animate in
+            toastLabel.alpha = 0
+            UIView.animate(withDuration: 0.3) {
+                toastLabel.alpha = 1
+            }
+
+            // Remove after duration
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                UIView.animate(
+                    withDuration: 0.3,
+                    animations: {
+                        toastLabel.alpha = 0
+                    },
+                    completion: { _ in
+                        toastLabel.removeFromSuperview()
+                    }
+                )
+            }
         }
     }
 
