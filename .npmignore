@@ -1,0 +1,45 @@
+# Development files
+src/
+.github/
+.git/
+.gitignore
+.gitmodules
+
+# Build scripts
+build-android.sh
+rollup.config.mjs
+tsconfig.json
+
+# IDE files
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Test files
+**/__tests__/
+**/*.test.ts
+**/*.spec.ts
+
+# Documentation
+*.md
+!README.md
+
+# Node modules
+node_modules/
+package-lock.json
+
+# iOS build artifacts
+ios/Pods/
+ios/Podfile.lock
+ios/build/
+ios/Plugin.xcworkspace/
+ios/Plugin.xcodeproj/project.xcworkspace/
+
+# Android build artifacts
+android/build/
+android/.gradle/
+android/local.properties
+
+# Compiled output (keep only dist)
+dist/

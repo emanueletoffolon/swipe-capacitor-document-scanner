@@ -7,11 +7,11 @@
   "types": "dist/esm/index.d.ts",
   "unpkg": "dist/plugin.js",
   "files": [
+    "dist/",
     "android/src/main/",
     "android/build.gradle",
-    "dist/",
     "ios/Plugin/",
-    "SwipeCapacitorDocumentScanner.podspec"
+    "*.podspec"
   ],
   "author": "swipe GmbH",
   "license": "MIT",
